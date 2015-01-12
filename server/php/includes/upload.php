@@ -8,6 +8,7 @@ class Upload {
     const ADHOC_FILE = "adhoc";
     const STORE_FILE = "store";
     const ICON_FILE = "icon";
+    const SYMBOLS_FILE = "symbols";
     const RELEASENOTES_FILE = "releasenotes";
     
     private $_arguments;
@@ -35,11 +36,19 @@ class Upload {
         }
         else {
             try {
-                $this->detectPlatform();
-                $this->createTargetDirectory();
-                $this->createMetadata();
-                $files = $this->moveFiles();
-                return Helper::sendJSONAndExit($files);
+                if ($this->isSymbolsUpload()) {
+                    // Debug symbols upload.
+                    // This can happen as a separate request, as the symbols
+                    // file may push the request over the maximum upload size.
+                    $response = $this->receiveSymbols();
+                } else {
+                    // Application upload
+                    $this->detectPlatform();
+                    $this->createTargetDirectory();
+                    $this->createMetadata();
+                    $response = $this->moveFiles();
+                }
+                return Helper::sendJSONAndExit($response);
             } catch (Exception $exception) {
                 return Helper::sendJSONAndExit(array(
                     "status"    => self::UPLOAD_FAILED,
@@ -47,6 +56,15 @@ class Upload {
                 ));
             }
         }
+    }
+    
+    private function isSymbolsUpload() {
+        return $this->_metadata["location"] != NULL && $_FILES["symbols"] != NULL;
+    }
+    
+    private function receiveSymbols() {
+        $this->createDirectory("{$this->path()}/symbols/", "Unable to create symbols directory");
+        return $this->moveFiles();
     }
     
     private function requiresAuthentication() {
@@ -110,22 +128,29 @@ class Upload {
         $apps = array();
         
         // Move icon
-        move_uploaded_file($_FILES[self::ICON_FILE]["tmp_name"], "{$this->path()}/" . $_FILES[self::ICON_FILE]["name"]);
+        if (isset($_FILES[self::ICON_FILE])) {
+            move_uploaded_file($_FILES[self::ICON_FILE]["tmp_name"], "{$this->path()}/" . $_FILES[self::ICON_FILE]["name"]);
+        }
         
         // Move adhoc build
         if (isset($_FILES[self::ADHOC_FILE])) {
-            $apps[self::ADHOC_FILE] = $this->publishAppPackage($_FILES[self::ADHOC_FILE]);
+            $apps[self::ADHOC_FILE] = $this->publishAppArtefact($_FILES[self::ADHOC_FILE]);
         }
         
         // Move store build
         if (isset($_FILES[self::STORE_FILE])) {
             $this->createDirectory("{$this->path()}/store/", "Unable to create store directory");
-            $apps[self::STORE_FILE] = $this->publishAppPackage($_FILES[self::STORE_FILE], "store/", "%s%s/store/%s");
+            $apps[self::STORE_FILE] = $this->publishAppArtefact($_FILES[self::STORE_FILE], "store/", "%s%s/store/%s");
         }
         
         // Move releasenotes
         if (isset($_FILES[self::RELEASENOTES_FILE])) {
             move_uploaded_file($_FILES[self::RELEASENOTES_FILE]["tmp_name"], "{$this->path()}/" . $_FILES[self::RELEASENOTES_FILE]["name"]);
+        }
+        
+        // Move symbols file
+        if (isset($_FILES[self::SYMBOLS_FILE])) {
+            $apps[self::SYMBOLS_FILE] = $this->publishAppArtefact($_FILES[self::SYMBOLS_FILE], "symbols/", "%s%s/symbols/%s");
         }
         
         return $apps;
@@ -175,7 +200,7 @@ class Upload {
         }
     }
     
-    private function publishAppPackage($file, $location = null, $format = "%sapps/%s") {
+    private function publishAppArtefact($file, $location = null, $format = "%sapps/%s") {
         $name = preg_replace("/[^0-9a-z\.A-Z]+/", "_",  $file["name"]);
         move_uploaded_file($file["tmp_name"], "{$this->path()}/" . $location . $name);
         return sprintf($format, $this->_baseURL, $this->location(), $name);
