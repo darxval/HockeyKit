@@ -85,7 +85,7 @@ class Upload {
             $this->_detectedPlatform = Device::Android;
         }
         else {
-            throw new UnexpectedValueException("Unknown app type $extension");
+            throw new UnexpectedValueException("Unknown app type '$extension'");
         }
         
         $providedFields = array_merge(array_keys($_FILES), array_keys($this->_metadata));
@@ -186,7 +186,7 @@ class Upload {
         foreach (new DirectoryIterator($path) as $fileInfo) {
             $validFile = $fileInfo->isFile() || 
                          ($fileInfo->isDir() && $fileInfo->getFilename() == "store");
-            if(!$fileInfo->isDot() || $validFile) {
+            if(!$fileInfo->isDot() && $validFile) {
                 unlink($fileInfo->getPathname());
             }
         }
