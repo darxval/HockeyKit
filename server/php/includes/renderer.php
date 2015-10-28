@@ -36,9 +36,9 @@ class Renderer {
         if (count($applications) == 0) {
             $this->_content = NO_APPS_AVAILABLE_MESSAGE;
         }
-        
+
         if (isset($this->_router->arguments["org"])) {
-	        $this->_content = new OrganisationView($this->_appUpdater->applications, $this->_router, $device);
+	        $this->_content = new OrganisationView($this->_appUpdater, $this->_router, $device);
         	return;
         }
         

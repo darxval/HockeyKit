@@ -2,14 +2,16 @@
 	
 	class OrganisationView extends view {
 		
+		private $_appUpdater;
 		private $_applications;
 		private $_device;
 		private $_router;
 		
-		function __construct($applications, $router, $device) {
+		function __construct(AppUpdater $appUpdater, Router $router, $device) {
 			parent::__construct("orglist.html");
 			
-			$this->_applications = $applications;
+			$this->_appUpdater = $appUpdater;
+			$this->_applications = $appUpdater->applications;
 			$this->_device = $device;
 			$this->_router = $router;
 			
@@ -19,41 +21,33 @@
 		
 		private function generateViews() {
 			
-			$releases = new view();
-
-			foreach($this->_applications["RCDirectories"] as $type => $releaseCandidates) {
-				
-				$group = $this->groupForAppCluster($releaseCandidates);
-				
-				$group->replaceAll(array(
-					"title" => $type,
-					"panel-type" => "success"
-				));
-				$releases->append($group);
-			}
-			
+			$releases = $this->generatePanelForGroup("RCDirectories", "success");
 			$this->replace("release-candidates", $releases);
 			
 			
-			$snapshots = new view();
-			
-			foreach($this->_applications["SnapshotDirectories"] as $type => $releaseCandidates) {
-				
-				$group = $this->groupForAppCluster($releaseCandidates);
-				
-				$group->replaceAll(array(
-					"title" => $type,
-					"panel-type" => "warning"
-				));
-				$snapshots->append($group);
-			}
-			
+			$snapshots = $this->generatePanelForGroup("SnapshotDirectories", "warning");
 			$this->replace("snapshots", $snapshots);
+			
 			
 			$group = $this->appsForCluster($this->_applications["Uncategorised"], false);
 			$this->replace("uncategorised", $group);
 		}
 		
+		private function generatePanelForGroup($group, $panelType) {
+			$output = new view();
+			
+			foreach($this->_appUpdater->options[$group] as $type) {
+				$groupOutput = $this->groupForAppCluster($this->_applications[$group][$type]);
+				
+				$groupOutput->replaceAll(array(
+					"title" => $type,
+					"panel-type" => $panelType
+				));
+				$output->append($groupOutput);
+			}
+			
+			return $output;
+		}
 		
 		private function groupForAppCluster($appCluster) {
 			
