@@ -515,13 +515,8 @@ class AppUpdater
                 break;
             
         }
-		
+
         if ($appBundleIdentifier == null) return;
-        
-        if (isset($arguments['platform']) && $arguments['platform'] == "") {
-            // Use the current device platform
-            $arguments['platform'] = $device;
-        }
         
         $file = join($arguments, "/");
         $path = $this->appDirectory . $file;

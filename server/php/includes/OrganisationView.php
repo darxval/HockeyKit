@@ -92,7 +92,7 @@
 					"updated" => $candidate[AppUpdater::INDEX_DATE],
 					"url"	=> $url,
 					"style" => ($index == 0 || !$hideOlderApps) ? "" : "display:none",
-					"devices" => count($candidate[AppUpdater::INDEX_DEVICES]) . " provisioned devices",
+					"devices" => count($candidate[AppUpdater::INDEX_DEVICES]) . " devices",
 					"info-url"	=> "/apps/" . $real_path
 				));
 				
