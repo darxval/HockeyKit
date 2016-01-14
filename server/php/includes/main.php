@@ -183,6 +183,7 @@ class AppUpdater
     protected function __construct($options) {
         $this->appDirectory = $options['appDirectory'];
         $this->logic = isset($options['logic']) ? $options['logic'] : null;
+        $this->options = $options;
     }
     
     public function execute($action, $arguments = array()) {
@@ -206,6 +207,35 @@ class AppUpdater
     protected function app($arguments)
     {
         return $this->show($arguments);
+    }
+    
+    protected function orgindex($arguments) {
+	    
+	    $file = $arguments["org"];
+        $path = $this->appDirectory . $file;
+		$directory = dir($path);
+
+		$files = $this->getApplicationVersions($directory);
+
+		$versions = $files[self::VERSIONS_SPECIFIC_DATA];
+
+        foreach ($versions as $version => $fileSet) {
+			$app = $this->appFromVersionFileSet($fileSet, $file, $directory, $files, self::PLATFORM_IOS);
+
+			// Sort apps into RC / Nightly / Other
+			$directory_path = $app["directory_path"];
+			$dirs = explode('/', $directory_path);
+			
+			$parent_path = $dirs[1];
+			
+			if (array_key_exists($parent_path, $this->options["RCDirectories"]) ) {
+				$this->applications["RCDirectories"][$this->options["RCDirectories"][$parent_path]][] = $app;
+			} else if (array_key_exists($parent_path, $this->options["SnapshotDirectories"])) {
+				$this->applications["SnapshotDirectories"][$this->options["SnapshotDirectories"][$parent_path]][] = $app;
+			} else {
+				$this->applications["Uncategorised"][] = $app;
+			}
+        }
     }
     
     protected function addStats($bundleidentifier, $format)
@@ -380,10 +410,11 @@ class AppUpdater
         }
         
         $app = $ipa ? $ipa : $apk;
-
+        
         $newApp = array();
         $newApp['path']            = substr($app, strpos($app, $file));
         $newApp[self::INDEX_DIR]   = $file;
+        $newApp["directory_path"]  = dirname(substr($app, strpos($app, $file) + strlen($file)));
         $newApp[self::INDEX_IMAGE] = substr($image, strpos($image, $file));
         $newApp[self::INDEX_NOTES] = $note ? Helper::nl2br_skip_html(file_get_contents($note)) : '';
         $newApp[self::INDEX_STATS] = array();
@@ -484,17 +515,12 @@ class AppUpdater
                 break;
             
         }
-        
+
         if ($appBundleIdentifier == null) return;
-        
-        if (isset($arguments['platform']) && $arguments['platform'] == "") {
-            // Use the current device platform
-            $arguments['platform'] = $device;
-        }
         
         $file = join($arguments, "/");
         $path = $this->appDirectory . $file;
-        
+
         if (!file_exists($path)) return;
 
         $directory = dir($path);

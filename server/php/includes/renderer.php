@@ -1,5 +1,7 @@
 <?php
 
+require("OrganisationView.php");
+
 class Renderer {
     
     private $_router;
@@ -17,6 +19,7 @@ class Renderer {
     }
     
     public function setDevice($device) {
+
         $applications = array_filter($this->_appUpdater->applications, function ($item) use ($device) {
             switch($device) {
                 case Device::iOS:
@@ -33,7 +36,13 @@ class Renderer {
         if (count($applications) == 0) {
             $this->_content = NO_APPS_AVAILABLE_MESSAGE;
         }
-            
+
+        if (isset($this->_router->arguments["org"])) {
+	        $this->_content = new OrganisationView($this->_appUpdater, $this->_router, $device);
+        	return;
+        }
+        
+        
         $shouldUseTable = (count($applications) > 1);
 				
         foreach($applications as $app) {

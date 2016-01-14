@@ -1,0 +1,77 @@
+<div class="container-fluid">
+	
+	<h2>Release Candidates</h2>
+	<div class="row">
+	  {release-candidates}
+	</div>
+	
+	 <h2>Snapshots</h2>
+	  <div class="alert alert-warning" role="alert">
+	  	<b>Warning:</b> Snapshot builds are taken on a nightly basis from the mainline development branch. These represent work-in-progress and may be incomplete and contain bugs.
+	  </div>
+	  
+	  <div class="row">
+		  {snapshots}
+	  </div>
+	
+	<h2>Uncategorised</h2>
+	<div class="panel panel-warning">
+	  <div class="panel-body">
+	  	{uncategorised}
+	  </div>
+	</div>  
+  
+</div>
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js" type="text/javascript"></script>
+
+<script type="text/javascript">	
+	
+var datesToResolve = document.getElementsByClassName('resolveReleasedDate');
+for (var i = 0; i < datesToResolve.length; ++i) {
+    var item = datesToResolve[i];
+    var dateWithUserOffset = new Date(item.innerHTML * 1000);
+    
+    item.innerHTML = timeSince(dateWithUserOffset);
+}
+
+
+function timeSince(date) {
+
+    var seconds = Math.floor((new Date() - date) / 1000);
+    var interval = Math.floor(seconds / 31536000);
+
+    if (interval > 1) {
+        return interval + " years ago";
+    }
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) {
+        return interval + " months ago";
+    }
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) {
+        return interval + " days ago";
+    }
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) {
+        return interval + " hours ago";
+    }
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) {
+        return interval + " minutes ago";
+    }
+    return Math.floor(seconds) + " seconds ago";
+}
+
+$(document).ready(function () {
+	$('a.ShowOlderApps').click(function(el) {
+		var footer = $(this).parent();
+		console.log(footer);
+		footer.parent().find('.media').show();
+		footer.hide();
+	});
+});
+
+
+
+</script>

@@ -6,6 +6,7 @@
 class Router
 {
     static $routes = array(
+	    '^/org/(?P<org>[\w\.-]*?)/?$' => '/orgindex',
         '^/apps/(?P<bundleidentifier>[\w/\.-]*?)(?:/(?P<platform>android|ios|support))?(?:/(?P<version>[\w\d.]+))?$' => '/app',
         '^/api/2/apps/(?P<bundleidentifier>[\w/\.-]*?)(?:/(?P<platform>android|ios|support))?(?:/(?P<version>[\w\d.]+))?$' => '/api',
         '/api/upload' => '/upload',
@@ -120,7 +121,7 @@ class Router
 
         $is_v1_client = strpos($_SERVER['HTTP_USER_AGENT'], 'CFNetwork') !== false;
 
-        $this->api = (strpos($request, '/api/') === false && strpos($request, '/apps/') === false) || $is_v1_client ?
+        $this->api = (strpos($request, '/api/') === false && strpos($request, '/apps/') === false && strpos($request, '/org/') === false) || $is_v1_client ?
             AppUpdater::API_V1 : AppUpdater::API_V2;
 
         if ($this->api == AppUpdater::API_V1) {
