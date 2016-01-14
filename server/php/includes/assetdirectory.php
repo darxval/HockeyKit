@@ -17,7 +17,7 @@ class AssetDirectory {
     down the directory structure. If the user accesses
     directly these will still function as normal.
     */
-    private $ignored_subdirectories = array("support");
+    private $ignored_subdirectories = array("support", "thinned");
     
     
     public function __construct(Directory $dir, $language) {
@@ -92,6 +92,7 @@ class AssetDirectory {
                         $version[AppUpdater::FILE_VERSION_RESTRICT] = $subAssetDir->restrict;
                         $version[AppUpdater::FILE_VERSION_MANDATORY] = $subAssetDir->mandatory;
                         $version[AppUpdater::INDEX_DEVICES] = $this->devicesForIPA($subAssetDir->ipa);
+                        $version[AppUpdater::INDEX_THINNEDAPPS] = $this->thinnedAssets($subDirectory);
                         
                         // if this is a restricted version, check if the UDID is provided and allowed
                         if ($subAssetDir->restrict && !$this->checkProtectedVersion($subAssetDir->restrict)) {
@@ -130,6 +131,7 @@ class AssetDirectory {
                 $version[AppUpdater::FILE_COMMON_NOTES] = $this->note;
                 $version[AppUpdater::FILE_COMMON_ICON] = $this->icon;
                 $version[AppUpdater::INDEX_DEVICES] = $this->devicesForIPA($this->ipa);
+                $version[AppUpdater::INDEX_THINNEDAPPS] = $this->thinnedAssets($this->_dir);
                 
                 $allVersions[] = $version;
                 $files[AppUpdater::VERSIONS_SPECIFIC_DATA] = $allVersions;
@@ -156,6 +158,24 @@ class AssetDirectory {
         else {
             return $ipa->provisionedDevices();
         }
+    }
+    
+    private function thinnedAssets(Directory $directory) {
+        $thinnedPath = dir($directory->path . "/thinned");
+        
+        $assets = array();
+        
+        if ($thinnedPath) {
+            $directoryIterator = new RecursiveDirectoryIterator($thinnedPath->path, FilesystemIterator::SKIP_DOTS);
+            $objects = new RecursiveIteratorIterator($directoryIterator, RecursiveIteratorIterator::SELF_FIRST);
+            foreach($objects as $object) {
+                $info = pathinfo($object->getFilename());
+                $name = str_replace("_", " ", strstr($info['filename'], "iP"));
+
+                $assets[trim($name)] = $object->getSize();
+            }
+        }
+        return $assets;
     }
     
     protected function checkProtectedVersion($restrict) {
