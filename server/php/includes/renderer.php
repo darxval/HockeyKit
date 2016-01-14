@@ -139,7 +139,9 @@ class Renderer {
 
                 $variants->replace("list_items", $variant_list);
             } else {
-                $variants->replace("list_items", "");
+                $row = new view('row.html');
+                $row->replace("item_text", "This app does not support App Thinning.");
+                $variants->replace("list_items", $row);
             }
             
             $content->replace("thinnedapps", $variants);
