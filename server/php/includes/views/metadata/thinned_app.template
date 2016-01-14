@@ -1,0 +1,10 @@
+				<dict>
+					<key>kind</key>
+					<string>software-package</string>
+					<key>url</key>
+					<string>__BASE_URL__{thinned-folder}/{variant-package}</string>
+					<key>variantIds</key>
+					<array>
+						{variants}
+					</array>
+				</dict>

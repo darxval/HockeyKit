@@ -118,6 +118,7 @@ class AppUpdater
     const INDEX_STATS           = 'stats';
     const INDEX_PLATFORM        = 'platform';
     const INDEX_DEVICES         = 'devices';
+    const INDEX_THINNEDAPPS     = 'thinnedapps';
 
     // define filetypes
     const FILE_IOS_PLIST        = '.plist';
@@ -440,6 +441,7 @@ class AppUpdater
             $newApp[self::INDEX_PLATFORM]       = self::APP_PLATFORM_IOS;
             
             $newApp[self::INDEX_DEVICES] = $current[self::INDEX_DEVICES];
+            $newApp[self::INDEX_THINNEDAPPS] = $current[self::INDEX_THINNEDAPPS];
             
         } else if ($apk) {
             // Android Application

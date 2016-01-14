@@ -121,9 +121,34 @@ class Renderer {
                 $content->replace("releasenotes", new view());
             }
             
+            $variants = new view("list.html");
+            $variants->replaceAll(array(
+                "title" => "App Thinning Variants",
+                "message" => "App Thinning variants of this application are listed below. Installation will automatically select the correct version."
+            ));
+            
+            if (count($app[AppUpdater::INDEX_THINNEDAPPS]) > 0) {
+                
+                $variant_list = "";
+                $row = new view('row.html');
+                foreach ($app[AppUpdater::INDEX_THINNEDAPPS] as $device_type => $size) {
+                    $size_text = round($size / 1024 / 1024, 1) . " MB";
+                    $variant_list .= $row->replace('item_text', "$device_type ($size_text)");
+                    $row->reset();
+                }
+
+                $variants->replace("list_items", $variant_list);
+            } else {
+                $row = new view('row.html');
+                $row->replace("item_text", "This app does not support App Thinning.");
+                $variants->replace("list_items", $row);
+            }
+            
+            $content->replace("thinnedapps", $variants);
+            
             $devices = null;
             if (isset($app[AppUpdater::INDEX_DEVICES]) && $device == Device::Desktop) {
-                $devices = new view("devices.html");
+                $devices = new view("list.html");
                 
                 $message = null;
                 $device_list = null;
@@ -132,16 +157,17 @@ class Renderer {
                 }
                 else {
                     $message = PROVISIONED_DEVICES_MESSAGE;
-                    $device_row = new view('device_row.html');
+                    $device_row = new view('row.html');
                     foreach ($app[AppUpdater::INDEX_DEVICES] as $device) {
-                        $device_list .= $device_row->replace('uuid', $device);
+                        $device_list .= $device_row->replace('item_text', $device);
                         $device_row->reset();
                     }
                 }
                 
                 $devices->replaceAll(array(
+                    "title" => "Devices",
                     "message" => $message,
-                    "device_list" => $device_list
+                    "list_items" => $device_list
                 ));
             }
             

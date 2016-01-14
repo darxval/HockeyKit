@@ -193,6 +193,7 @@ class iOSAppUpdater extends AbstractAppUpdater
 
         $plist_content = file_get_contents($plist);
         $plist_content = str_replace('__URL__', $ipa_url, $plist_content);
+        $plist_content = str_replace('__BASE_URL__', $r->baseURL . dirname($ipa_file) . "/", $plist_content);
         
         if ($image) {
             $image_url = $r->baseURL . $bundleidentifier . '/' . basename($image);
@@ -200,8 +201,6 @@ class iOSAppUpdater extends AbstractAppUpdater
         <dict>
                             <key>kind</key>
                             <string>display-image</string>
-                            <key>needs-shine</key>
-                            <false/>
                             <key>url</key>
                             <string>$image_url</string>
                         </dict>

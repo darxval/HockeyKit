@@ -7,6 +7,7 @@ class Upload {
     
     const ADHOC_FILE = "adhoc";
     const STORE_FILE = "store";
+    const VARIANT_FILE = "variant";
     const ICON_FILE = "icon";
     const SYMBOLS_FILE = "symbols";
     const RELEASENOTES_FILE = "releasenotes";
@@ -44,8 +45,12 @@ class Upload {
                 } else {
                     // Application upload
                     $this->detectPlatform();
-                    $this->createTargetDirectory();
-                    $this->createMetadata();
+                    
+                    if (!isset($_FILES[self::VARIANT_FILE])) {
+                        $this->createTargetDirectory();
+                        $this->createMetadata();
+                    }
+                    
                     $response = $this->moveFiles();
                 }
                 return Helper::sendJSONAndExit($response);
@@ -76,8 +81,13 @@ class Upload {
     
     private function detectPlatform() {
         $build = isset($_FILES[self::ADHOC_FILE]) ? $_FILES[self::ADHOC_FILE] : $_FILES[self::STORE_FILE];
-        $extension = "." . pathinfo($build["name"], PATHINFO_EXTENSION);
         
+        if (!isset($build)) {
+	        $build = $_FILES[self::VARIANT_FILE];
+        }
+        
+        $extension = "." . pathinfo($build["name"], PATHINFO_EXTENSION);
+
         if ($extension == AppUpdater::FILE_IOS_IPA) {
             $this->_detectedPlatform = Device::iOS;
         }
@@ -90,6 +100,11 @@ class Upload {
         
         $providedFields = array_merge(array_keys($_FILES), array_keys($this->_metadata));
         $missingFields = array_diff($this->_requiredFields[$this->_detectedPlatform], $providedFields);
+        
+        if (isset($_FILES[self::VARIANT_FILE])) {
+            $missingFields = array();
+        }
+        
         if (count($missingFields) > 0) {
             throw new UnexpectedValueException("Required fields were not provided - " . join(", ", $missingFields));
         }
@@ -111,6 +126,41 @@ class Upload {
         
         $template = new view("metadata/$file");
         
+        // Support for app-thinned iOS binaries
+        if (array_key_exists("variants", $this->_metadata) && $this->_detectedPlatform == Device::iOS) {
+		
+	        $variants_output = new view();
+	        $variants_output->append("<key>thinned-assets</key>\n<array>\n");
+	        
+	        $variant_template = new view("metadata/thinned_app.template");
+	        
+	        foreach($this->_metadata["variants"] as $variant_file => $variants) {
+		       
+		       $device_types_string = "";
+		       foreach($variants as $type) {
+			       $device_types_string .= "<string>$type</string>\n";
+		       }
+		       
+		       $variant_file = $this->sanitiseName($variant_file);
+		       
+		       $variant_template->replaceAll(array(
+			       "variant-package" => $variant_file,
+			       "thinned-folder" => "thinned", 
+			       "variants" => $device_types_string
+		       ));
+		        
+		       $variants_output->append($variant_template);
+		       $variant_template->reset();
+	        }
+	        
+	        
+	        $variants_output->append("</array>");
+	        
+	        $template->replace("thinned-assets", $variants_output);
+        } else {
+	        $template->replace("thinned-assets", "");
+        }
+
         $replacements = array_merge($this->_metadata, array(
             "icon"  => $_FILES[self::ICON_FILE]["name"]
         ));
@@ -151,6 +201,11 @@ class Upload {
         // Move symbols file
         if (isset($_FILES[self::SYMBOLS_FILE])) {
             $apps[self::SYMBOLS_FILE] = $this->publishAppArtefact($_FILES[self::SYMBOLS_FILE], "symbols/", "%s%s/symbols/%s");
+        }
+        
+        if (isset($_FILES[self::VARIANT_FILE])) {
+	        $this->createDirectory("{$this->path()}/thinned/", "Unable to create thinned directory");
+			$apps[self::VARIANT_FILE] = $this->publishAppArtefact($_FILES[self::VARIANT_FILE], "thinned/", "%s%s/thinned/%s");
         }
         
         return $apps;
@@ -201,9 +256,13 @@ class Upload {
     }
     
     private function publishAppArtefact($file, $location = null, $format = "%sapps/%s") {
-        $name = preg_replace("/[^0-9a-z\.A-Z]+/", "_",  $file["name"]);
+        $name = $this->sanitiseName($file["name"]);
         move_uploaded_file($file["tmp_name"], "{$this->path()}/" . $location . $name);
         return sprintf($format, $this->_baseURL, $this->location(), $name);
+    }
+    
+    private function sanitiseName($name) {
+	    return preg_replace("/[^0-9a-z\.A-Z]+/", "_",  $name);
     }
     
     private function sanitisePath($baseDirectory, $location) {
